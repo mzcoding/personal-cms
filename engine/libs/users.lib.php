@@ -13,10 +13,12 @@ $app->get('/{_locale}/login', function () use ($app) {
 });
 $app->post('/{_locale}/login', function(Request $request) use ($app){
     $email = strip_tags($request->get('email'));
-    $password = md5($request->get('password'));
+    $password = _h($request->get('password'));
 
-    print_r($email);
-    die;
+    //Вытаскиваем из БД
+    
+    
+
 });
 //Восстановление пароля
 $app->get('/forget', function() use($app){

@@ -12,3 +12,8 @@ $app['debug'] = true; //Дебаг
 $app['theme'] = "default"; //Шаблон
 $app['language'] = "ru"; //Язык
 $app['asset.host'] = 'http://test.loc/';//Полный url
+
+$app['host'] = "localhost";
+$app['dbname'] = "test";
+$app['dbuser'] = "root";
+$app['dbpassword'] = "";
