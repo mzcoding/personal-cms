@@ -27,10 +27,16 @@ $app->register(new Silex\Provider\TranslationServiceProvider(), array(
 //Сессии
 $app->register(new Silex\Provider\SessionServiceProvider());
 //БД
-$app->register(new Acme\DatabaseServiceProvider(), array(
-    'database.dsn'      => 'mysql:host=' . $app['host'] .';dbname='. $app['dbname'],
-    'database.user'     => $app['dbuser'],
-    'database.password' => $app['dbpassword'],
+$app->register(new Silex\Provider\DoctrineServiceProvider(), array(
+    'db.options' => array(
+        'driver'   => 'pdo_mysql',
+        'host'     => $app['host'], 
+        'dbname'   => $app['dbname'],
+        'user'     => $app['dbuser'],
+        'password' => $app['dbpassword'],
+        'charset'  => 'utf8',
+        'port'     => 3306, 
+    ),
 ));
 
 
