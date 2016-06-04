@@ -48,7 +48,9 @@ require_once __DIR__.'/../../config.php';
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse pull-left" id="navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="javascript:;"><?php if(isset($_GET['step']) && $_GET['step'] == 2): ?> Шаг 2 <?php else: ?> Шаг 1 <?php endif; ?></a></li>
+            <li class="active"><a href="javascript:;"><?php if(isset($_GET['step']) && $_GET['step'] == 2): ?> Шаг 2  
+                                                      <?php elseif(isset($_GET['step']) && $_GET['step'] == 3): ?> Шаг 3
+                                                      <?php else: ?> Шаг 1 <?php endif; ?></a></li>
             
            
           </ul>
@@ -79,7 +81,7 @@ require_once __DIR__.'/../../config.php';
       <?php if(isset($_GET['step']) && $_GET['step'] == 2): ?>
       	<?php 
       	if(isset($_POST) && !empty($_POST)){
-      		 $host = 
+      		 
       		 $mysqli = new mysqli($_POST['host'], $_POST['dbuser'], $_POST['dbpassword'], $_POST['dbname']);
       		 if (mysqli_connect_errno()) { ?>
       		 	 <div class="callout callout-danger">
@@ -89,13 +91,119 @@ require_once __DIR__.'/../../config.php';
       		 <?php }else{
       		 $j = json_encode($_POST);
       	    @file_put_contents(__DIR__ . '/../../db.dat', $j);
-      	} ?>
+      	?>
              <div class="callout callout-success">Успешное подключение к БД!</div>
+             <form method="post" action="?step=3">
+             	<p><strong>E-mail администратора:</strong><br><input type="email" name="email" class="form-control" required></p>
+             	<p><strong>Пароль администратора:</strong><br><input type="password" name="password" class="form-control" required></p>
+             	<p><strong>Наименование вашего сайта:</strong><br><input type="text" name="site_name" class="form-control"></p>
+             	<br><br>
+             	<p><button type="submit" class="btn btn-primary btn-large col-md-offset-10">Продолжить</button>
+             </form>
              
       	<?php
-         
+         }
        }
       	?>
+      <?php elseif(isset($_GET['step']) && $_GET['step'] == 3): ?>
+      	<?php if(isset($_POST) && !empty($_POST)): ?> 
+            <?php //импортируем таблицы 
+            if(file_exists(__DIR__ . '/../../db.dat')){
+            	
+            	$dat = file_get_contents(__DIR__ . '/../../db.dat');
+            	$db = json_decode($dat);
+                $mysqli = new mysqli($db->host, $db->dbuser, $db->dbpassword, $db->dbname);
+                $sql = "
+                    CREATE TABLE `articles` (
+                     `id` int(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                     `title` varchar(255) NOT NULL,
+                     `prew_text` text NOT NULL,
+                     `full_text` text NOT NULL,
+                     `author` varchar(255) DEFAULT NULL,
+                     `link` varchar(255) DEFAULT NULL,
+                     `category_id` int(11) NOT NULL,
+                     `created_at` int(11) NOT NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+                     CREATE TABLE `category` (
+                     `id` int(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                     `title` varchar(525) NOT NULL,
+                     `slug` varchar(255) NOT NULL
+                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8; 
+                        CREATE TABLE `pages` (
+                     `id` int(11),
+                     `title` varchar(255) NOT NULL,
+                     `text` text NOT NULL,
+                     `slug` varchar(255) NOT NULL,
+                     `created_at` int(11) NOT NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+                   CREATE TABLE `uploads` (
+                    `id` int(11) ,
+                    `link` varchar(255) NOT NULL,
+                    `type` varchar(100) NOT NULL,
+                    `size` varchar(100) NOT NULL,
+                    `description` text NOT NULL,
+                    `created_at` int(11) NOT NULL
+                   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+                  CREATE TABLE `users` (
+                    `id` int(11) ,
+                    `email` varchar(155) NOT NULL,
+                    `password` varchar(255) NOT NULL,
+                    `salt` varchar(255) NOT NULL,
+                    `site_name` varchar(255) NOT NULL
+                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+                  CREATE TABLE `works` (
+                    `id` int(11),
+                    `title` varchar(255) NOT NULL,
+                    `work_link` varchar(255) NOT NULL,
+                    `description` text NOT NULL,
+                    `created_at` int(11) 
+                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+              
+                 ALTER TABLE `pages`
+                 ADD PRIMARY KEY (`id`),
+                 ADD UNIQUE KEY `slug` (`slug`);
+                 ALTER TABLE `uploads`
+                 ADD PRIMARY KEY (`id`);
+                 ALTER TABLE `users`
+                 ADD PRIMARY KEY (`id`);
+                 ALTER TABLE `works`
+                 ADD PRIMARY KEY (`id`);
+           
+                 ALTER TABLE `pages`
+                 MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+                 ALTER TABLE `uploads`
+                 MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+                 ALTER TABLE `users`
+                 MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+                 ALTER TABLE `works`
+                 MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+                    ";
+                $result = $mysqli->multi_query($sql);
+             
+                
+                if($result == true){
+                 $site_name = strip_tags($_POST['site_name']);	
+                 $email = strip_tags($_POST['email']);
+            	 $salt = uniqid();
+            	 $password = _h($_POST['password'], $salt);
+            	 while(mysqli_more_results($mysqli) && $mysqli->next_result()) $mysqli->store_result();
+                 $sql2 = "insert into `users` (`id`, `email`, `password`, `salt`, `site_name`) values(1, '".$email."', '".$password."', '".$salt."', '".$site_name."')";
+                 $result2 = $mysqli->query($sql2);
+                 if($result2 == false) die("Не удалось установить пользователя! <br><strong>Ошибка: ". $mysqli->error . "</strong>");
+                }else{
+                	die("Не удалось импортировать таблицы! <br><strong>Ошибка: " . $mysqli->error . "</strong>");
+                }
+                
+                $mysqli->close();
+            }else{
+            	die("Файл настроек не найден! Повторите установку");
+            }
+            ?>
+      	<?php endif; ?>
+      	<div class="callout callout-success">Урааа! Ваш сайт успешно установлен и готов к работе!</div>
+      	<div><strong>ВАЖНО!</strong> - Удалите каталог <em>install</em> из корневой директории!</div> 
+      	<div><a href="/ru/login">Перейти в панель управления</a></div>
 
       <?php else: ?>
       	    <div class="callout callout-info">
@@ -110,10 +218,10 @@ require_once __DIR__.'/../../config.php';
           </div>
           <div class="box-body">
             <form method="post" action="?step=2">
-               <p><strong>Имя хоста (обычно localhost):</strong><br> <input type="text" class="form-control" placeholder="localhost" name="host"></p>
-               <p><strong>Имя пользователя БД:</strong><br> <input type="text" class="form-control" placeholder="root" name="dbuser"></p>
+               <p><strong>Имя хоста (обычно localhost):</strong><br> <input type="text" class="form-control" placeholder="localhost" name="host" required></p>
+               <p><strong>Имя пользователя БД:</strong><br> <input type="text" class="form-control" placeholder="root" name="dbuser" required></p>
                <p><strong>Пароль пользователя БД:</strong><br> <input type="text" class="form-control" placeholder="dbpassword" name="dbpassword"></p>
-               <p><strong>Имя БД:</strong><br> <input type="text" class="form-control" placeholder="dbname" name="dbname"></p>
+               <p><strong>Имя БД:</strong><br> <input type="text" class="form-control" placeholder="dbname" name="dbname" required></p>
                <br><br>
                <p><button type="submit" class="btn btn-primary btn-large col-md-offset-10">Продолжить</button>
 

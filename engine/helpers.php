@@ -4,7 +4,6 @@ function _lang($lang){
   return $app['translator']->trans($lang);
 
 }
-function _h($data){
-	$salt = '12345';
+function _h($data, $salt){
 	return hash('sha256', $data . $salt);
 }
